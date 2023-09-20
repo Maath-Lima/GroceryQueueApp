@@ -11,7 +11,7 @@ using (var channel = connection.CreateModel())
     /*
      1 - fast-queue
      2 - normal-queue
-     3 - preferential-queue
+     3 - preferential-queuea
     */
 
     var groceryQueues = new string[] { "fast", "normal", "preferential" };
