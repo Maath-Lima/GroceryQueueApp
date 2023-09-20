@@ -1,5 +1,4 @@
 ﻿using RabbitMQ.Client;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 var factory = new ConnectionFactory { HostName = "localhost" };
@@ -15,7 +14,7 @@ using (var channel = connection.CreateModel())
      3 - preferential-queue
     */
 
-    var groceryQueues = new string[] { "fast-queue", "normal-queue", "preferential-queue" };
+    var groceryQueues = new string[] { "fast", "normal", "preferential" };
     var random = new Random();
 
     while (true)
@@ -23,35 +22,32 @@ using (var channel = connection.CreateModel())
         Console.WriteLine("Press any key to generate more messages");
         Console.ReadLine();
 
+        var routingKey = groceryQueues[random.Next(0, groceryQueues.Length)];
 
+        var message = $"This Consumer has a message for queue {routingKey}";
+
+        var body = Encoding.UTF8.GetBytes(message);
+
+        channel.BasicPublish(exchange: "grocery",
+                             routingKey: routingKey,
+                             basicProperties: null,
+                             body: body);
+
+        Console.WriteLine($" [x] Sent message for queue {routingKey}");
     }
-
-
-    var message = "fast-queue";
-
-    var body = Encoding.UTF8.GetBytes(message);
-
-    channel.BasicPublish(exchange: "grocery",
-                         routingKey: string.Empty,
-                         basicProperties: null,
-                         body: body);
-
-    Console.WriteLine($" [x] Sent {message}");
-
-    Console.WriteLine(" Press [enter] to exit.");
-    Console.ReadLine();
 }
 
 IModel SetupBusChannel(IModel channel)
 {
+    channel.QueueDeclare(queue: "fast-queue", durable: true, exclusive: false, autoDelete: false);
+    channel.QueueDeclare(queue: "normal-queue", durable: false, exclusive: false, autoDelete: false);
+    channel.QueueDeclare(queue: "preferential-queue", durable: false, exclusive: false, autoDelete: false);
 
-    {
-        channel.QueueDeclare(queue: "fast-queue", durable: true, exclusive: false, autoDelete: false);
-        channel.QueueDeclare(queue: "normal-queue", durable: false, exclusive: false, autoDelete: false);
-        channel.QueueDeclare(queue: "preferential-queue", durable: false, exclusive: false, autoDelete: false);
+    channel.ExchangeDeclare("grocery", ExchangeType.Direct);
 
-        channel.ExchangeDeclare("grocery", "direct");
+    channel.QueueBind("fast-queue", "grocery", "fast");
+    channel.QueueBind("normal-queue", "grocery", "normal");
+    channel.QueueBind("preferential-queue", "grocery", "preferential");
 
-        return channel;
-    }
+    return channel;
 }
